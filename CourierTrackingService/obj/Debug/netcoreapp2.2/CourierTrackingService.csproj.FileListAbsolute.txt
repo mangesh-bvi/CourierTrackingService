@@ -1,0 +1,11 @@
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\bin\Debug\netcoreapp2.2\appsettings.json
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\bin\Debug\netcoreapp2.2\CourierTrackingService.deps.json
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\bin\Debug\netcoreapp2.2\CourierTrackingService.runtimeconfig.json
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\bin\Debug\netcoreapp2.2\CourierTrackingService.runtimeconfig.dev.json
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\bin\Debug\netcoreapp2.2\CourierTrackingService.dll
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\bin\Debug\netcoreapp2.2\CourierTrackingService.pdb
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\obj\Debug\netcoreapp2.2\CourierTrackingService.csproj.CoreCompileInputs.cache
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\obj\Debug\netcoreapp2.2\CourierTrackingService.AssemblyInfoInputs.cache
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\obj\Debug\netcoreapp2.2\CourierTrackingService.AssemblyInfo.cs
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\obj\Debug\netcoreapp2.2\CourierTrackingService.dll
+D:\Kaustubh\ALLBackjobs\CourierTracking\CourierTrackingService\CourierTrackingService\obj\Debug\netcoreapp2.2\CourierTrackingService.pdb
