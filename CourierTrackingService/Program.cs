@@ -17,7 +17,6 @@ namespace CourierTrackingService
         {
             IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", true, true).Build();
             delaytime = Convert.ToInt32(config.GetSection("MySettings").GetSection("IntervalInMinutes").Value);
-
             Thread _Individualprocessthread = new Thread(new ThreadStart(InvokeMethod));
             _Individualprocessthread.Start();
         }
@@ -25,11 +24,61 @@ namespace CourierTrackingService
         {
             while (true)
             {
-                GetdataFromMySQL();
+                GetConnectionStrings();
                 Thread.Sleep(delaytime);
             }
         }
-        public static void GetdataFromMySQL()
+
+        public static void GetConnectionStrings()
+        {
+            string ServerName = string.Empty;
+            string ServerCredentailsUsername = string.Empty;
+            string ServerCredentailsPassword = string.Empty;
+            string DBConnection = string.Empty;
+
+
+            try
+            {
+                DataTable dt = new DataTable();
+                IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", true, true).Build();
+                var constr = config.GetSection("ConnectionStrings").GetSection("HomeShop").Value;
+                MySqlConnection con = new MySqlConnection(constr);
+                MySqlCommand cmd = new MySqlCommand("SP_HSGetAllConnectionstrings", con);
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Connection.Open();
+                MySqlDataAdapter da = new MySqlDataAdapter(cmd);
+                da.Fill(dt);
+                cmd.Connection.Close();
+
+                if (dt.Rows.Count > 0)
+                {
+                    for (int i = 0; i < dt.Rows.Count; i++)
+                    {
+                        DataRow dr = dt.Rows[i];
+                        ServerName = Convert.ToString(dr["ServerName"]);
+                        ServerCredentailsUsername = Convert.ToString(dr["ServerCredentailsUsername"]);
+                        ServerCredentailsPassword = Convert.ToString(dr["ServerCredentailsPassword"]);
+                        DBConnection = Convert.ToString(dr["DBConnection"]);
+
+                        string ConString = "Data Source = " + ServerName + " ; port = " + 3306 + "; Initial Catalog = " + DBConnection + " ; User Id = " + ServerCredentailsUsername + "; password = " + ServerCredentailsPassword + "";
+                        GetdataFromMySQL(ConString);
+                    }
+                }
+            }
+            catch
+            {
+
+
+            }
+            finally
+            {
+
+                GC.Collect();
+            }
+
+
+        }
+        public static void GetdataFromMySQL(string ConString)
         {
             int ID = 0;
             int TenantId = 0;
@@ -46,11 +95,11 @@ namespace CourierTrackingService
                 DataTable dt = new DataTable();
 
                 IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", true, true).Build();
-                var constr = config.GetSection("ConnectionStrings").GetSection("HomeShop").Value;
+                //var constr = config.GetSection("ConnectionStrings").GetSection("HomeShop").Value;
                 string ClientAPIURL = config.GetSection("MySettings").GetSection("ClientAPIURL").Value;
 
 
-                con = new MySqlConnection(constr);
+                con = new MySqlConnection(ConString);
                 MySqlCommand cmd = new MySqlCommand("SP_PHYGetCourierTrackingDetails", con)
                 {
                     CommandType = System.Data.CommandType.StoredProcedure
@@ -80,22 +129,16 @@ namespace CourierTrackingService
                         apiResponse = CommonService.SendApiRequest(ClientAPIURL + "/api/ShoppingBag/GetTracking", apiReq);
                         couriertrackResponce = JsonConvert.DeserializeObject<CouriertrackResponce>(apiResponse);
 
-                        if (apiResponse == "")
+                        if (couriertrackResponce.data.tracking_data.shipment_track.current_status == null)
                         {
-                            UpdateResponse(ID, TenantId, InvoiceNo);
-                        }
-                        else
-                        {
-                            //logged to Elastic
+                            UpdateResponse(ID, TenantId,InvoiceNo, couriertrackResponce.data.tracking_data.shipment_track.current_status, ConString);
                         }
                     }
-
-                   
                 }
             }
             catch (Exception ex)
             {
-                throw ex;
+                
             }
             finally
             {
@@ -107,15 +150,15 @@ namespace CourierTrackingService
             }
         }
 
-        public static void UpdateResponse(int ID ,int TenantId,string InvoiceNo)
+        public static void UpdateResponse(int ID ,int TenantId,string InvoiceNo,string CourierStatus,string ConString)
         {
 
             try
             {
                 DataTable dt = new DataTable();
-                IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", true, true).Build();
-                var constr = config.GetSection("ConnectionStrings").GetSection("HomeShop").Value;
-                MySqlConnection con = new MySqlConnection(constr);
+                //IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", true, true).Build();
+                //var constr = config.GetSection("ConnectionStrings").GetSection("HomeShop").Value;
+                MySqlConnection con = new MySqlConnection(ConString);
                 MySqlCommand cmd = new MySqlCommand("SP_PHYUpdateCourierStatus", con)
                 {
                     CommandType = CommandType.StoredProcedure
@@ -123,6 +166,7 @@ namespace CourierTrackingService
                 cmd.Parameters.AddWithValue("@_id", ID);
                 cmd.Parameters.AddWithValue("@_tenantId", TenantId);
                 cmd.Parameters.AddWithValue("@_invoiceNo", InvoiceNo);
+                cmd.Parameters.AddWithValue("@_courierStatus", CourierStatus);
                 cmd.Connection.Open();
                 cmd.ExecuteNonQuery();
                 cmd.Connection.Close();
