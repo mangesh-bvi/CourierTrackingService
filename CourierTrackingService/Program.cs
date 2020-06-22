@@ -65,7 +65,7 @@ namespace CourierTrackingService
                     }
                 }
             }
-            catch
+            catch (Exception Ex)
             {
 
 
@@ -112,33 +112,40 @@ namespace CourierTrackingService
                 {
                     for (int i = 0; i < dt.Rows.Count; i++)
                     {
-                        DataRow dr = dt.Rows[i];
-                        ID = Convert.ToInt32(dr["ID"]);
-                        TenantId = Convert.ToInt32(dr["TenantId"]);
-                        InvoiceNo = Convert.ToString(dr["InvoiceNo"]);
-                        AWBNo= Convert.ToString(dr["AWBNo"]);
-
-
-                        CouriertrackRequest couriertrack = new CouriertrackRequest()
+                        try
                         {
-                            awb_no = AWBNo
-                        };
+                            DataRow dr = dt.Rows[i];
+                            ID = Convert.ToInt32(dr["ID"]);
+                            TenantId = Convert.ToInt32(dr["TenantId"]);
+                            InvoiceNo = Convert.ToString(dr["InvoiceNo"]);
+                            AWBNo = Convert.ToString(dr["AWBNo"]);
 
 
-                        string apiReq = JsonConvert.SerializeObject(couriertrack);
-                        apiResponse = CommonService.SendApiRequest(ClientAPIURL + "/api/ShoppingBag/GetTracking", apiReq);
-                        couriertrackResponce = JsonConvert.DeserializeObject<CouriertrackResponce>(apiResponse);
+                            CouriertrackRequest couriertrack = new CouriertrackRequest()
+                            {
+                                awb_no = AWBNo
+                            };
 
-                        if (couriertrackResponce.data.tracking_data.shipment_track.current_status == null)
+
+                            string apiReq = JsonConvert.SerializeObject(couriertrack);
+                            apiResponse = CommonService.SendApiRequest(ClientAPIURL + "/api/ShoppingBag/GetTracking", apiReq);
+                            couriertrackResponce = JsonConvert.DeserializeObject<CouriertrackResponce>(apiResponse);
+                            if (couriertrackResponce.data.tracking_data.shipment_track != null)
+                                if (couriertrackResponce.data.tracking_data.shipment_track[0].current_status != null)
+                                {
+                                    UpdateResponse(ID, TenantId, InvoiceNo, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString);
+                                }
+                        }
+                        catch (Exception eX)
                         {
-                            UpdateResponse(ID, TenantId,InvoiceNo, couriertrackResponce.data.tracking_data.shipment_track.current_status, ConString);
+
                         }
                     }
                 }
             }
             catch (Exception ex)
             {
-                
+
             }
             finally
             {
@@ -150,7 +157,7 @@ namespace CourierTrackingService
             }
         }
 
-        public static void UpdateResponse(int ID ,int TenantId,string InvoiceNo,string CourierStatus,string ConString)
+        public static void UpdateResponse(int ID, int TenantId, string InvoiceNo, string CourierStatus, string ConString)
         {
 
             try

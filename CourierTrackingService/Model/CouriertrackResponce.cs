@@ -17,8 +17,8 @@ namespace CourierTrackingService.Model
     {
         public string track_status { get; set; }
         public string shipment_status { get; set; }
-        public shipment_Track shipment_track { get; set; }
-        public shipment_track_activities shipment_track_activities { get; set; }
+        public shipment_Track[] shipment_track { get; set; }
+        public shipment_track_activities[] shipment_track_activities { get; set; }
         public string track_url { get; set; }
         public string error { get; set; }
         public string edd { get; set; }
