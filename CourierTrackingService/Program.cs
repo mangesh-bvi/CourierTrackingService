@@ -85,6 +85,7 @@ namespace CourierTrackingService
             string InvoiceNo = string.Empty;
             string AWBNo = string.Empty;
             string apiResponse = string.Empty;
+            string StoreCode = string.Empty;
 
             CouriertrackResponce couriertrackResponce = new CouriertrackResponce();
 
@@ -119,6 +120,7 @@ namespace CourierTrackingService
                             TenantId = Convert.ToInt32(dr["TenantId"]);
                             InvoiceNo = Convert.ToString(dr["InvoiceNo"]);
                             AWBNo = Convert.ToString(dr["AWBNo"]);
+                            StoreCode = Convert.ToString(dr["StoreCode"]);
 
 
                             CouriertrackRequest couriertrack = new CouriertrackRequest()
@@ -130,11 +132,18 @@ namespace CourierTrackingService
                             string apiReq = JsonConvert.SerializeObject(couriertrack);
                             apiResponse = CommonService.SendApiRequest(ClientAPIURL + "/api/ShoppingBag/GetTracking", apiReq);
                             couriertrackResponce = JsonConvert.DeserializeObject<CouriertrackResponce>(apiResponse);
-                            if (couriertrackResponce.data.tracking_data.shipment_track != null)
-                                if (couriertrackResponce.data.tracking_data.shipment_track[0].current_status != null)
-                                {
-                                    UpdateResponse(ID, TenantId, InvoiceNo, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString);
-                                }
+                            if (couriertrackResponce.statusCode == "200" || couriertrackResponce.statusCode == "202")
+                            {
+                                if (couriertrackResponce.data.tracking_data.shipment_track != null)
+                                    if (couriertrackResponce.data.tracking_data.shipment_track[0].current_status != null)
+                                    {
+                                        UpdateResponse(ID, TenantId, InvoiceNo, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString);
+                                    }
+                            }
+                            else
+                            {
+                                ExLogger(ID, InvoiceNo, Convert.ToString(DateTime.Now), StoreCode, couriertrackResponce.statusCode + " : " + couriertrackResponce.data.tracking_data.error, apiResponse, ConString);
+                            }
                         }
                         catch (Exception eX)
                         {
@@ -189,6 +198,36 @@ namespace CourierTrackingService
 
         }
 
-
+        public static void ExLogger(int TransactionID, string BillNo, string BillDate, string StoreCode, string ErrorMessage, string ErrorDiscription, string ConString)
+        {
+            try
+            {
+                DataTable dt = new DataTable();
+                IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", true, true).Build();
+                var constr = config.GetSection("ConnectionStrings").GetSection("HomeShop").Value;
+                MySqlConnection con = new MySqlConnection(ConString);
+                MySqlCommand cmd = new MySqlCommand("SP_PHYInsertErrorLog", con)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                cmd.CommandType = System.Data.CommandType.StoredProcedure;
+                cmd.Parameters.AddWithValue("@_transactionID", TransactionID);
+                cmd.Parameters.AddWithValue("@_billNo", BillNo);
+                cmd.Parameters.AddWithValue("@_billDate", BillDate);
+                cmd.Parameters.AddWithValue("@_storeCode", StoreCode);
+                cmd.Parameters.AddWithValue("@_errorMessage", ErrorMessage);
+                cmd.Parameters.AddWithValue("@_errorDiscription", ErrorDiscription);
+                cmd.Parameters.AddWithValue("@_repeatCount", 0);
+                cmd.Parameters.AddWithValue("@_functionName", "Payment Status");
+                cmd.Connection.Open();
+                cmd.ExecuteNonQuery();
+                cmd.Connection.Close();
+            }
+            catch (Exception ex)
+            {
+                //write code for genral exception
+            }
+            finally { GC.Collect(); }
+        }
     }
 }
