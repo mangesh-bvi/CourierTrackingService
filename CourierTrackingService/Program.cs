@@ -28,7 +28,9 @@ namespace CourierTrackingService
                 Thread.Sleep(delaytime);
             }
         }
-
+        /// <summary>
+        /// GetConnectionStrings
+        /// </summary>
         public static void GetConnectionStrings()
         {
             string ServerName = string.Empty;
@@ -78,6 +80,11 @@ namespace CourierTrackingService
 
 
         }
+
+        /// <summary>
+        /// GetdataFromMySQL
+        /// </summary>
+        /// <param name="ConString"></param>
         public static void GetdataFromMySQL(string ConString)
         {
             int ID = 0;
@@ -96,7 +103,7 @@ namespace CourierTrackingService
                 DataTable dt = new DataTable();
 
                 IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", true, true).Build();
-                //var constr = config.GetSection("ConnectionStrings").GetSection("HomeShop").Value;
+             
                 string ClientAPIURL = config.GetSection("MySettings").GetSection("ClientAPIURL").Value;
 
 
@@ -166,14 +173,21 @@ namespace CourierTrackingService
             }
         }
 
+        /// <summary>
+        /// UpdateResponse
+        /// </summary>
+        /// <param name="ID"></param>
+        /// <param name="TenantId"></param>
+        /// <param name="InvoiceNo"></param>
+        /// <param name="CourierStatus"></param>
+        /// <param name="ConString"></param>
         public static void UpdateResponse(int ID, int TenantId, string InvoiceNo, string CourierStatus, string ConString)
         {
 
             try
             {
                 DataTable dt = new DataTable();
-                //IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", true, true).Build();
-                //var constr = config.GetSection("ConnectionStrings").GetSection("HomeShop").Value;
+                
                 MySqlConnection con = new MySqlConnection(ConString);
                 MySqlCommand cmd = new MySqlCommand("SP_PHYUpdateCourierStatus", con)
                 {
@@ -198,6 +212,17 @@ namespace CourierTrackingService
 
         }
 
+
+        /// <summary>
+        /// ExLogger
+        /// </summary>
+        /// <param name="TransactionID"></param>
+        /// <param name="BillNo"></param>
+        /// <param name="BillDate"></param>
+        /// <param name="StoreCode"></param>
+        /// <param name="ErrorMessage"></param>
+        /// <param name="ErrorDiscription"></param>
+        /// <param name="ConString"></param>
         public static void ExLogger(int TransactionID, string BillNo, string BillDate, string StoreCode, string ErrorMessage, string ErrorDiscription, string ConString)
         {
             try

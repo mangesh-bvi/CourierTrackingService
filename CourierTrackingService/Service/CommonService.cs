@@ -8,7 +8,12 @@ namespace CourierTrackingService.Service
 {
     public class CommonService
     {
-
+        /// <summary>
+        /// SendApiRequest
+        /// </summary>
+        /// <param name="url"></param>
+        /// <param name="Request"></param>
+        /// <returns></returns>
         public static string SendApiRequest(string url, string Request)
         {
             string strresponse = "";
@@ -31,9 +36,9 @@ namespace CourierTrackingService.Service
                     strresponse = streamReader.ReadToEnd();
                 }
             }
-            catch (Exception ex)
+            catch 
             {
-                throw;
+                
             }
 
             return strresponse;
