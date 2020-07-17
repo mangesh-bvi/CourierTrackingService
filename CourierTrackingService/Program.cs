@@ -70,7 +70,7 @@ namespace CourierTrackingService
             catch (Exception Ex)
             {
 
-
+                throw Ex;
             }
             finally
             {
@@ -146,8 +146,15 @@ namespace CourierTrackingService
                             {
                                 if (couriertrackResponce.data.tracking_data.shipment_track != null)
                                     if (couriertrackResponce.data.tracking_data.shipment_track[0].current_status != null)
-                                    {
+                                    { 
                                         UpdateResponse(ID, TenantId, InvoiceNo, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString);
+
+                                        bool IsSend = UpdateCourierStatus(ID, TenantId, InvoiceNo, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString);
+
+                                        if(IsSend)
+                                        {
+                                            CommonService.SmsWhatsUpDataSend(TenantId, 0, "", ID, ClientAPIURL, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString);
+                                        }
                                     }
                             }
                             else
@@ -216,6 +223,45 @@ namespace CourierTrackingService
                 }
                 GC.Collect();
             }
+
+        }
+
+
+        public static bool UpdateCourierStatus(int ID, int TenantId, string InvoiceNo, string CourierStatus, string ConString)
+        {
+            MySqlConnection con = null;
+            bool IsSend = false;
+            try
+            {
+                DataTable dt = new DataTable();
+
+                con = new MySqlConnection(ConString);
+                MySqlCommand cmd = new MySqlCommand("SP_PHYUpdateCourierStatusForWhatsupSMS", con)
+                {
+                    CommandType = CommandType.StoredProcedure
+                };
+                cmd.Parameters.AddWithValue("@_id", ID);
+                cmd.Parameters.AddWithValue("@_tenantId", TenantId);
+                cmd.Parameters.AddWithValue("@_invoiceNo", InvoiceNo);
+                cmd.Parameters.AddWithValue("@_courierStatus", CourierStatus);
+                cmd.Connection.Open();
+                IsSend = Convert.ToBoolean(cmd.ExecuteScalar());
+                cmd.Connection.Close();
+            }
+            catch
+            {
+
+            }
+            finally
+            {
+                if (con != null)
+                {
+                    con.Close();
+                }
+                GC.Collect();
+            }
+
+            return IsSend;
 
         }
 
