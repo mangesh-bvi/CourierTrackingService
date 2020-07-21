@@ -96,6 +96,7 @@ namespace CourierTrackingService
             string AWBNo = string.Empty;
             string apiResponse = string.Empty;
             string StoreCode = string.Empty;
+            string ProgramCode = string.Empty;
 
             CouriertrackResponce couriertrackResponce = new CouriertrackResponce();
 
@@ -131,7 +132,7 @@ namespace CourierTrackingService
                             InvoiceNo = Convert.ToString(dr["InvoiceNo"]);
                             AWBNo = Convert.ToString(dr["AWBNo"]);
                             StoreCode = Convert.ToString(dr["StoreCode"]);
-
+                            ProgramCode = Convert.ToString(dr["ProgramCode"]);
 
                             CouriertrackRequest couriertrack = new CouriertrackRequest()
                             {
@@ -153,7 +154,7 @@ namespace CourierTrackingService
 
                                         if(IsSend)
                                         {
-                                            CommonService.SmsWhatsUpDataSend(TenantId, 0, "", ID, ClientAPIURL, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString);
+                                            CommonService.SmsWhatsUpDataSend(TenantId, 0, ProgramCode, ID, ClientAPIURL, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString);
                                         }
                                     }
                             }
