@@ -53,6 +53,38 @@ namespace CourierTrackingService.Service
 
         }
 
+
+        public static string MaxSendApiRequest(string url, string Request, string Xauthtoken)
+        {
+            string strresponse = "";
+            try
+            {
+                var httpWebRequest = (System.Net.HttpWebRequest)WebRequest.Create(url);
+                httpWebRequest.ContentType = "text/json";
+                httpWebRequest.Headers.Add("x-auth-token", Xauthtoken);
+                httpWebRequest.Method = "POST";
+
+                using (var streamWriter = new StreamWriter(httpWebRequest.GetRequestStream()))
+                {
+                    if (!string.IsNullOrEmpty(Request))
+                        streamWriter.Write(Request);
+                }
+                var httpResponse = (HttpWebResponse)httpWebRequest.GetResponse();
+
+                using (var streamReader = new StreamReader(httpResponse.GetResponseStream()))
+                {
+                    strresponse = streamReader.ReadToEnd();
+                }
+            }
+            catch
+            {
+
+            }
+
+            return strresponse;
+
+        }
+
         /// <summary>
         /// SmsWhatsUpDataSend
         /// </summary>
@@ -64,12 +96,13 @@ namespace CourierTrackingService.Service
         /// <param name="sMSWhtappTemplate"></param>
         /// <param name="ConString"></param>
         /// <returns></returns>
-        public static int SmsWhatsUpDataSend(int tenantId, int userId, string ProgramCode, int orderId, string ClientAPIURL, string sMSWhtappTemplate, string ConString)
+        public static int SmsWhatsUpDataSend(int tenantId, int userId, string ProgramCode, int orderId, string ClientAPIURL, string sMSWhtappTemplate, string ConString, WebBotContentRequest webBotcontentRequest, string Xauthtoken)
         {
             int result = 0;
             string Message = "";
             DataSet ds = new DataSet();
             OrdersSmsWhatsUpDataDetails ordersSmsWhatsUpDataDetails = new OrdersSmsWhatsUpDataDetails();
+            MaxWebBotHSMResponse MaxResponse = new MaxWebBotHSMResponse();
             conn = new MySqlConnection(ConString);
             try
             {
@@ -165,6 +198,8 @@ namespace CourierTrackingService.Service
                         MessageText = ds.Tables[0].Rows[0]["MessageText"] == DBNull.Value ? string.Empty : Convert.ToString(ds.Tables[0].Rows[0]["MessageText"]),
                         InvoiceNo = ds.Tables[0].Rows[0]["InvoiceNo"] == DBNull.Value ? string.Empty : Convert.ToString(ds.Tables[0].Rows[0]["InvoiceNo"]),
                         MobileNumber = ds.Tables[0].Rows[0]["MobileNumber"] == DBNull.Value ? string.Empty : Convert.ToString(ds.Tables[0].Rows[0]["MobileNumber"]),
+                        WabaNumber = ds.Tables[0].Rows[0]["WabaNumber"] == DBNull.Value ? string.Empty : Convert.ToString(ds.Tables[0].Rows[0]["WabaNumber"]),
+                        ShoppingBagNo = ds.Tables[0].Rows[0]["ShoppingBagNo"] == DBNull.Value ? string.Empty : Convert.ToString(ds.Tables[0].Rows[0]["ShoppingBagNo"]),
                         AdditionalInfo = ds.Tables[1].Rows[0]["additionalInfo"] == DBNull.Value ? string.Empty : Convert.ToString(ds.Tables[1].Rows[0]["additionalInfo"]),
                     };
                     // result = ds.Tables[0].Rows[0]["ChatID"] == DBNull.Value ? 0 : Convert.ToInt32(ds.Tables[0].Rows[0]["ChatID"]);
@@ -184,18 +219,61 @@ namespace CourierTrackingService.Service
                             {
                                 additionalList = ordersSmsWhatsUpDataDetails.AdditionalInfo.Split(",").ToList();
                             }
-                            SendFreeTextRequest sendFreeTextRequest = new SendFreeTextRequest
+
+
+                            if (webBotcontentRequest.webBotHSMSetting != null)
                             {
-                                To = ordersSmsWhatsUpDataDetails.MobileNumber.TrimStart('0').Length > 10 ? ordersSmsWhatsUpDataDetails.MobileNumber : "91" + ordersSmsWhatsUpDataDetails.MobileNumber.TrimStart('0'),
-                                ProgramCode = ProgramCode,
-                                TemplateName = getWhatsappMessageDetailsResponse.TemplateName,
-                                AdditionalInfo = additionalList
-                            };
+                                if (webBotcontentRequest.webBotHSMSetting.Programcode.ToLower().Equals(webBotcontentRequest.ProgramCode.ToLower()))
+                                {
+                                    webBotcontentRequest.WABANo = ordersSmsWhatsUpDataDetails.WabaNumber;
+                                    webBotcontentRequest.MaxHSMRequest.body.to = ordersSmsWhatsUpDataDetails.MobileNumber;
+                                    webBotcontentRequest.MaxHSMRequest.body.from = ordersSmsWhatsUpDataDetails.WabaNumber;
+                                    webBotcontentRequest.MaxHSMRequest.body.hsm.element_name = getWhatsappMessageDetailsResponse.TemplateName;
+                                    webBotcontentRequest.TenantID = tenantId;
+                                    webBotcontentRequest.ProgramCode = ProgramCode;
+                                    webBotcontentRequest.UserID = userId;
 
-                            string apiReq = JsonConvert.SerializeObject(sendFreeTextRequest);
-                            apiResponse = CommonService.SendApiRequest(ClientAPIURL + "api/ChatbotBell/SendCampaign", apiReq);
 
 
+                                    if (additionalList.Count > 0)
+                                    {
+                                        List<LocalizableParam> list = new List<LocalizableParam>();
+
+                                        foreach (string str in additionalList)
+                                        {
+                                            list.Add(new LocalizableParam() { @default = str });
+                                        }
+                                        webBotcontentRequest.MaxHSMRequest.body.hsm.localizable_params = list;
+                                    }
+
+                                    string JsonRequest = JsonConvert.SerializeObject(webBotcontentRequest.MaxHSMRequest);
+                                    string ClientAPIResponse = CommonService.MaxSendApiRequest(webBotcontentRequest.MaxWebBotHSMURL, JsonRequest, Xauthtoken);
+
+                                    if (!string.IsNullOrEmpty(ClientAPIResponse))
+                                    {
+                                        MaxResponse = JsonConvert.DeserializeObject<MaxWebBotHSMResponse>(ClientAPIResponse);
+                                        result = MaxResponse.success ? 1 : 0;
+                                    }
+                                    else
+                                    {
+                                        result = 0;
+                                    }
+                                }
+                            }
+                            else
+                            {
+                                SendFreeTextRequest sendFreeTextRequest = new SendFreeTextRequest
+                                {
+                                    To = ordersSmsWhatsUpDataDetails.MobileNumber.TrimStart('0').Length > 10 ? ordersSmsWhatsUpDataDetails.MobileNumber : "91" + ordersSmsWhatsUpDataDetails.MobileNumber.TrimStart('0'),
+                                    ProgramCode = ProgramCode,
+                                    TemplateName = getWhatsappMessageDetailsResponse.TemplateName,
+                                    AdditionalInfo = additionalList
+                                };
+
+                                string apiReq = JsonConvert.SerializeObject(sendFreeTextRequest);
+                                apiResponse = CommonService.SendApiRequest(ClientAPIURL + "api/ChatbotBell/SendCampaign", apiReq);
+
+                            }
                             //if (apiResponse.Equals("true"))
                             //{
                             //    UpdateResponseShare(objRequest.CustomerID, "Contacted Via Chatbot");

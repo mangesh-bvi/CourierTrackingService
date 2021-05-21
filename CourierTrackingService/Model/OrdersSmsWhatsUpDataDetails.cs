@@ -50,6 +50,15 @@ namespace CourierTrackingService.Model
         /// Mobile Number
         /// </summary>
         public string MobileNumber { get; set; }
+
+        /// <summary>
+        /// WabaNumber
+        /// </summary>
+        public string WabaNumber { get; set; }
+        /// <summary>
+        /// ShoppingBagNo
+        /// </summary>
+        public string ShoppingBagNo { get; set; }
     }
 
     public class GetWhatsappMessageDetailsResponse

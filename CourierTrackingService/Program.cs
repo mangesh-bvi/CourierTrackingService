@@ -4,6 +4,7 @@ using Microsoft.Extensions.Configuration;
 using MySql.Data.MySqlClient;
 using Newtonsoft.Json;
 using System;
+using System.Collections.Generic;
 using System.Data;
 using System.Threading;
 
@@ -12,11 +13,44 @@ namespace CourierTrackingService
     class Program
     {
         public static int delaytime = 0;
+        private static List<WebBotHSMSetting> _hsmProgramcode;
+        private static string _maxHSMURL;
+        private static string _maxWeBotHSM;
+        private static string _from;
+        private static string _ttl;
+        private static string _type;
+        private static string _policy;
+        private static string _code;
+        private static string _xauthtoken;
 
         static void Main(string[] args)
         {
             IConfiguration config = new ConfigurationBuilder().AddJsonFile("appsettings.json", true, true).Build();
             delaytime = Convert.ToInt32(config.GetSection("MySettings").GetSection("IntervalInMinutes").Value);
+
+            _maxHSMURL = config.GetSection("MySettings").GetSection("MaxHSMURL").Value;
+            _maxWeBotHSM = config.GetSection("MySettings").GetSection("MaxWeBotHSM").Value;
+
+            _from = config.GetSection("WebBotHSMSParameters:from").Value;
+            _ttl = config.GetSection("WebBotHSMSParameters:ttl").Value;
+            _type = config.GetSection("WebBotHSMSParameters:type").Value;
+            _policy = config.GetSection("WebBotHSMSParameters:policy").Value;
+            _code = config.GetSection("WebBotHSMSParameters:code").Value;
+            _xauthtoken = config.GetSection("WebBotHSMSParameters:x-auth-token").Value;
+
+            _hsmProgramcode = new List<WebBotHSMSetting>();
+            var valuesSection = config.GetSection("MySettings").GetSection("WebBotHSMSParameters:HSMProgramcode");
+            foreach (IConfigurationSection section in valuesSection.GetChildren())
+            {
+                WebBotHSMSetting webBotHSMSetting = new WebBotHSMSetting
+                {
+                    Programcode = config.GetSection("Programcode").Value,
+                    bot = config.GetSection("bot").Value,
+                    @namespace = config.GetSection("namespace").Value
+                };
+                _hsmProgramcode.Add(webBotHSMSetting);
+            }
+
             Thread _Individualprocessthread = new Thread(new ThreadStart(InvokeMethod));
             _Individualprocessthread.Start();
         }
@@ -139,6 +173,41 @@ namespace CourierTrackingService
                                 awb_no = AWBNo
                             };
 
+                            WebBotContentRequest webBotcontentRequest = new WebBotContentRequest
+                            {
+                                MaxWebBotHSMURL = _maxHSMURL + _maxWeBotHSM,
+                                ProgramCode = ProgramCode
+                            };
+
+                            WebBotHSMSetting webBotHSMSetting = new WebBotHSMSetting();
+                            webBotHSMSetting = _hsmProgramcode.Find(x => x.Programcode.Equals(ProgramCode.ToLower()));
+
+                            if (webBotHSMSetting != null)
+                            {
+                                webBotcontentRequest.webBotHSMSetting = new WebBotHSMSetting();
+                                if (!string.IsNullOrEmpty(webBotHSMSetting.Programcode))
+                                {
+                                    webBotcontentRequest.MaxWebBotHSMURL = webBotcontentRequest.MaxWebBotHSMURL + "?bot=" + webBotHSMSetting.bot;
+                                    webBotcontentRequest.webBotHSMSetting = webBotHSMSetting;
+                                    MaxWebBotHSMRequest maxreq = new MaxWebBotHSMRequest();
+                                    Hsm hsmReq = new Hsm()
+                                    {
+                                        @namespace = webBotHSMSetting.@namespace,
+                                        language = new Language() { policy = _policy, code = _code }
+                                    };
+                                    Body body = new Body()
+                                    {
+                                        // from = webBotcontentRequest.WABANo,// _from,
+                                        ttl = Convert.ToInt32(_ttl),
+                                        type = _type,
+                                        hsm = hsmReq
+                                    };
+                                    maxreq.body = body;
+
+                                    webBotcontentRequest.MaxHSMRequest = maxreq;
+                                }
+                            }
+
 
                             string apiReq = JsonConvert.SerializeObject(couriertrack);
                             apiResponse = CommonService.SendApiRequest(ClientAPIURL + "/api/ShoppingBag/GetTracking", apiReq);
@@ -154,7 +223,7 @@ namespace CourierTrackingService
 
                                         if(IsSend)
                                         {
-                                            CommonService.SmsWhatsUpDataSend(TenantId, 0, ProgramCode, ID, ClientAPIURL, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString);
+                                            CommonService.SmsWhatsUpDataSend(TenantId, 0, ProgramCode, ID, ClientAPIURL, couriertrackResponce.data.tracking_data.shipment_track[0].current_status, ConString, webBotcontentRequest, _xauthtoken);
                                         }
                                     }
                             }
